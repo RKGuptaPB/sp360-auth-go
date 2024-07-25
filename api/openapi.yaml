@@ -1,0 +1,120 @@
+openapi: 3.0.1
+info:
+  description: This is the API to manage credentials and generate token
+  title: Auth APIs
+  version: 1.0.0
+servers:
+- description: Dev Server
+  url: https://api-dev.sendpro360.pitneycloud.com/auth
+- description: QA Server
+  url: https://api-qa.sendpro360.pitneycloud.com/auth
+paths:
+  /api/v1/token:
+    options:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Empty'
+          description: 200 response
+          headers:
+            Access-Control-Allow-Origin:
+              explode: false
+              schema:
+                type: string
+              style: simple
+            Access-Control-Allow-Methods:
+              explode: false
+              schema:
+                type: string
+              style: simple
+            Access-Control-Allow-Headers:
+              explode: false
+              schema:
+                type: string
+              style: simple
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: '''*'''
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        passthroughBehavior: when_no_match
+        type: mock
+    post:
+      description: "Each request to the PB PitneyShip APIs requires authentication\
+        \ via an OAuth token. This API call generates the OAuth token based on the\
+        \ Base64-encoded value of the API key and secret associated with your Pitney\
+        \ Bowes developer account. The token expires after 10 hours,means you must\
+        \ create a new one."
+      operationId: getAccessToken
+      parameters:
+      - description: Set this to- <b>'application/x-www-form-urlencoded'
+        explode: false
+        in: header
+        name: Content-Type
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            example:
+              grant_type: client_credentials
+              scope: psapi
+            schema:
+              $ref: '#/components/schemas/getAccessToken_request'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Empty'
+          description: The token has been generated successfully.
+      security:
+      - basic: []
+      summary: Get access token
+      tags:
+      - Get Access token
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        uri: "https://${stageVariables.ENDPOINT_HOST_OKTA}/oauth2/${stageVariables.OKTA_ASID}/v1/token"
+        responses:
+          default:
+            statusCode: "200"
+        passthroughBehavior: when_no_match
+        type: http_proxy
+components:
+  schemas:
+    Empty:
+      title: Empty Schema
+      type: object
+    getAccessToken_request:
+      properties:
+        grant_type:
+          example: client_credentials
+          type: string
+        scope:
+          example: psapi
+          type: string
+      type: object
+  securitySchemes:
+    basic:
+      scheme: basic
+      type: http
+x-amazon-apigateway-policy:
+  Version: 2008-10-17
+  Statement:
+  - Effect: Allow
+    Principal: '*'
+    Action: execute-api:Invoke
+    Resource: execute-api:/*/*/*
+    Condition:
+      IpAddress:
+        aws:SourceIp: 0.0.0.0/0
